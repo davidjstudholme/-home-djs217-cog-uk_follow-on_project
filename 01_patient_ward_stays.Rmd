@@ -1,0 +1,36 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+
+### Define functions
+
+plot_timeline_for_ward <- function(df, ward.name) {
+  
+  df.subset <- subset(df, df$Ward==ward.name)
+  #df.subset <- head(df, 500)
+  
+ results.plot <- ggplot(data=df.subset)+
+    geom_segment(aes(x=Start.date, xend=End.date, y=COG.UK, yend=COG.UK))+
+    geom_point(aes(x=SARS.Cov.2.date, y=COG.UK))
+  
+  return(results.plot)
+}
+
+
+### Read the data
+df <- read.table("V2-patient_stays.csv", sep=',', header=T)
+
+wards = levels(df$Ward)
+
+for (val in wards) {
+  outfile.name <- paste('ward-', val, '_timeline.png', sep='')
+  png(filename=outfile.name, width=1000)
+  print( plot_timeline_for_ward(df, val) )
+  dev.off()
+}
+
+```

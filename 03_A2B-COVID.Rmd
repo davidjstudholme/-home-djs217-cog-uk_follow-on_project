@@ -1,0 +1,17 @@
+---
+title: "A2B-COVID"
+output: html_notebook
+---
+
+
+## Install a2bcovid 
+
+```{r}
+
+install.packages("devtools") # if devtools not already installed
+library(devtools)
+install_github("chjackson/a2bcovid")
+
+
+```
+

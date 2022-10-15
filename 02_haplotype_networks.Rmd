@@ -1,0 +1,53 @@
+---
+title: "Haplotype networks" 
+output: html_notebook
+---
+
+Illingworth, C., Hamilton, W. L., Jackson, C., Warne, B., Popay, A., Meredith, L., Hosmillo, M., Jahun, A., Fieldman, T., Routledge, M., Houldcroft, C. J., Caller, L., Caddy, S., Yakovleva, A., Hall, G., Khokhar, F. A., Feltwell, T., Pinckert, M. L., Georgana, I., Chaudhry, Y., … Török, M. E. (2022). A2B-COVID: A Tool for Rapidly Evaluating Potential SARS-CoV-2 Transmission Events. Molecular biology and evolution, 39(3), msac025. https://doi.org/10.1093/molbev/msac025
+
+
+## Get the sequence data from COG-UK
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+if [ -s data_from_cog-uk/cog_alignment.fasta ]; then
+  echo data_from_cog-uk/cog_alignment.fasta already exists
+  else
+  wget --no-clobber https://cog-uk.s3.climb.ac.uk/phylogenetics/latest/cog_alignment.fasta.gz
+  gunzip cog_alignment.fasta.gz
+  mv cog_alignment.fasta data_from_cog-uk/
+  echo x
+  fi
+```
+
+## Get metadata
+
+
+## Extract just the EXET sequences that fall within the study period
+python 
+
+## Generate outbreak individual outbreak files from the combined file
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+perl generate_individual_outbreaks.pl patientstaff_data_for_haplotype_network.txt
+```
+
+
+### Generate nexus files for each outbreak
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+
+python3 get_sequences_within_date_range.py > data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna
+
+```
+
+
+
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+
+for outbreak_file in outbreak_lists/patientstaff_data_for_haplotype_network.txt outbreak_lists/outbreak.*.tsv
+  do echo $outbreak_file
+  perl get_haplotypes_from_aligned_fasta.pl data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
+    done
+    
+```
+
