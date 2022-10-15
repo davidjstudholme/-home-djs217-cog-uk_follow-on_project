@@ -43,18 +43,51 @@ else
 ## Generate outbreak individual outbreak files from the combined file
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
+rm outbreak.*.tsv
+ln -s outbreak_lists/patientstaff_data_for_haplotype_network.txt .
 perl generate_individual_outbreaks.pl patientstaff_data_for_haplotype_network.txt
 mv outbreak.*.tsv outbreak_lists/
+rm patientstaff_data_for_haplotype_network.txt
 ```
 
 ### Generate nexus files for each outbreak
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
 
-for outbreak_file in outbreak_lists/outbreak.*.tsv
-#outbreak_lists/patientstaff_data_for_haplotype_network.txt
+ln -s outbreak_lists/*.tsv .
+ln -s outbreak_lists/patientstaff_data_for_haplotype_network.txt .
+ln -s data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna .
+
+for outbreak_file in outbreak.*.tsv patientstaff_data_for_haplotype_network.txt
   do echo $outbreak_file
-  perl get_haplotypes_from_aligned_fasta.pl data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
+  #perl get_haplotypes_from_aligned_fasta.pl EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
   done
-    
+
 ```
+
+### Tidy up the files into directories
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+for i in nexus_files haplotype_pseudosequences haplotype_csv_files; do
+  if [ -d $i ]; then
+    echo $i directory exists
+else
+  echo creating directory $i
+  mkdir $i
+  fi
+done
+  
+mv *.nex nexus_files/
+mv *.outbreak.*.csv haplotype_csv_files/
+mv *.pseudosequences*.fna haplotype_pseudosequences/
+rm outbreak.*.tsv
+rm patientstaff_data_for_haplotype_network.txt
+
+```
+
+
+
+
+
+
+
