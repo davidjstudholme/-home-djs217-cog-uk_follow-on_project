@@ -9,45 +9,52 @@ Illingworth, C., Hamilton, W. L., Jackson, C., Warne, B., Popay, A., Meredith, L
 ## Get the sequence data from COG-UK
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
-if [ -s data_from_cog-uk/cog_alignment.fasta ]; then
+
+if [ -s data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna ]; then
+  echo data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna already exists
+  
+elif [ -s data_from_cog-uk/cog_alignment.fasta ]; then
   echo data_from_cog-uk/cog_alignment.fasta already exists
-  else
-  wget --no-clobber https://cog-uk.s3.climb.ac.uk/phylogenetics/latest/cog_alignment.fasta.gz
+  python3 get_sequences_within_date_range.py > data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna
+  
+else
+  wget https://cog-uk.s3.climb.ac.uk/phylogenetics/latest/cog_alignment.fasta.gz
   gunzip cog_alignment.fasta.gz
   mv cog_alignment.fasta data_from_cog-uk/
-  echo x
+  python3 get_sequences_within_date_range.py > data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna
   fi
+  
 ```
 
-## Get metadata
+## Get metadata from COG-UK
 
-
-## Extract just the EXET sequences that fall within the study period
-python 
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+if [ -s cog_metadata.csv ]; then
+  echo cog_metadata.csv already exists
+elif [ -s cog_metadata.csv.gz ]; then
+  echo cog_metadata.csv.gz already exists
+  gunzip cog_metadata.csv.gz
+else
+  wget https://cog-uk.s3.climb.ac.uk/phylogenetics/latest/cog_metadata.csv.gz
+  gunzip cog_metadata.csv.gz
+  fi
+```
 
 ## Generate outbreak individual outbreak files from the combined file
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
 perl generate_individual_outbreaks.pl patientstaff_data_for_haplotype_network.txt
+mv outbreak.*.tsv outbreak_lists/
 ```
-
 
 ### Generate nexus files for each outbreak
-```{bash include=T, eval=T, echo=T, warning=T, message=T}
-
-python3 get_sequences_within_date_range.py > data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna
-
-```
-
-
-
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
 
-for outbreak_file in outbreak_lists/patientstaff_data_for_haplotype_network.txt outbreak_lists/outbreak.*.tsv
+for outbreak_file in outbreak_lists/outbreak.*.tsv
+#outbreak_lists/patientstaff_data_for_haplotype_network.txt
   do echo $outbreak_file
   perl get_haplotypes_from_aligned_fasta.pl data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
-    done
+  done
     
 ```
-
