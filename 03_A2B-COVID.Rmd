@@ -3,6 +3,15 @@ title: "A2B-COVID"
 output: html_notebook
 ---
 
+## Reformat Crhis' data as input for A2B-COVID
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+
+python3 reformat_chris_locations.py
+
+
+```
+
 
 ## Install a2bcovid 
 

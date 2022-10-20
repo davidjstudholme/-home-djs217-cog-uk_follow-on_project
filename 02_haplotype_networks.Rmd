@@ -60,7 +60,7 @@ ln -s data_from_cog-uk/EXET_seqs_01_10_20_to_28_02_21.fna .
 
 for outbreak_file in outbreak.*.tsv patientstaff_data_for_haplotype_network.txt
   do echo $outbreak_file
-  #perl get_haplotypes_from_aligned_fasta.pl EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
+  perl get_haplotypes_from_aligned_fasta.pl EXET_seqs_01_10_20_to_28_02_21.fna $outbreak_file
   done
 
 ```

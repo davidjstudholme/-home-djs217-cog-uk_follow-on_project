@@ -1,14 +1,15 @@
 import sys
 from datetime import datetime as dt
 
-input_filename = 'COG-UK_project/V2-ward-location.csv'
-output_filename = 'COG-UK_project/V2-patient_stays.csv'
-last_dates_filename = 'COG-UK_project/last_infectious_date.csv'
+input_filename = 'data_from_chris/V2-ward-location.csv'
+output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
+output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.csv'
+last_dates_filename = 'data_from_chris/last_infectious_date.csv'
 
-message = ["Infile:", input_filename, "\nOutfile:", output_filename, '\n']
+message = ["Infile:", input_filename, "\nOutfile:", output_filename, "\nOutfile for a2bcovid:", output_for_a2b_filename, '\n']
 sys.stderr.write(" ".join(message))
 
-### Read the data from Chris's spreadhseet
+### Read the data from Chris's spreadsheet
 with open(input_filename) as fh:
     lines = fh.readlines()
     lines = [line.rstrip() for line in lines]
@@ -30,10 +31,19 @@ class Location:
     pass
 
 ### Now read each line and populate the objects
+previous_coguk_id = ""
+previous_ward = ""
+sideroom_index = 1
 patients = []
 for readline in lines:
     headings = readline.split(',')
     coguk_id, admission_date_string, covid_date_string, move_date_string, new_ward, new_bay, new_bed = headings[0:7]
+    
+    if new_bay == "SR":
+      new_ward_as_list = [new_ward, 'SR', str(sideroom_index)]
+      new_ward = '-'.join(new_ward_as_list)
+      sideroom_index += 1
+      print(new_ward)
      
     ### If the COG-UK ID is left blank, then assume that it is the same as previous
     if coguk_id == "":
@@ -48,6 +58,7 @@ for readline in lines:
             this_patient = patient
                 
     if patient_is_new:
+        previous_ward = ""
         this_patient = Patient()
         this_patient.coguk_id = coguk_id
         this_patient.admission_date_string = admission_date_string
@@ -59,6 +70,7 @@ for readline in lines:
         stay.start_date_string = move_date_string
         stay.end_date = ""
         stay.ward = new_ward
+        stay.previous_ward = previous_ward
         stay.bay = new_bay
         stay.bed = new_bed  
         this_patient.stays.append(stay)
@@ -71,11 +83,13 @@ for readline in lines:
         stay.start_date_string = move_date_string
         stay.end_date_string = ""
         stay.ward = new_ward
+        stay.previous_ward = previous_ward
         stay.bay = new_bay
         stay.bed = new_bed
         this_patient.stays.append(stay)  
         
     previous_coguk_id = coguk_id
+    previous_ward = new_ward
     
 ### Read the last infectious date for each patient so we can eliminate non-infectious periods
 with open(last_dates_filename) as fh:
@@ -112,7 +126,7 @@ fh.write(", ".join(header_line))
 for patient in patients:
     for stay in patient.stays:  
         
-        ### If end date of the stay is missing then we can assume that it is the last infecious date
+        ### If end date of the stay is missing then we can assume that it is the last infectious date
         if stay.end_date_string == '':
             stay.end_date_string = patient.last_infectious_date_string
             
@@ -126,6 +140,34 @@ for patient in patients:
             pass
         else:                      
             data_line = [patient.coguk_id, patient.admission_date_string, patient.covid_date_string, patient.last_infectious_date_string, stay.start_date_string, stay.end_date_string, stay.ward, stay.bay, stay.bed, '\n']
+            fh.write(", ".join(data_line))
+            
+fh.close()
+
+
+### Print the data to file formatted for a2bcovid
+header_line = ['patient_study_id',	'from_ward',	'start_date',	'to_ward',	'end_date',	'last_infectious_date', '\n']
+
+
+fh = open(output_for_a2b_filename, "w")
+fh.write(", ".join(header_line))
+for patient in patients:
+    for stay in patient.stays:  
+        
+        ### If end date of the stay is missing then we can assume that it is the last infecious date
+        if stay.end_date_string == '':
+            stay.end_date_string = patient.last_infectious_date_string
+            
+        ### Convert strings to dates
+        start_date = dt.strptime(stay.start_date_string, "%d/%m/%Y")
+        end_date = dt.strptime(stay.end_date_string, "%d/%m/%Y")
+        last_infectious_date = dt.strptime(patient.last_infectious_date_string, "%d/%m/%Y")
+           
+        if start_date > last_infectious_date:
+            ### Ignore this stay because patient was not infectious
+            pass
+        else:                      
+            data_line = [patient.coguk_id, stay.previous_ward, stay.start_date_string,	stay.ward, stay.end_date_string,	patient.last_infectious_date_string, '\n']
             fh.write(", ".join(data_line))
             
 fh.close()
