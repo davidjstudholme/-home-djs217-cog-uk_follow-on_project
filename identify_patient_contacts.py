@@ -10,7 +10,7 @@ fh.close()
 
 ### Remove the header line
 header = lines.pop(0) 
-sys.stderr.write(header)
+#sys.stderr.write(header)
 
 class Patient:
     pass
@@ -63,16 +63,17 @@ for readline in lines:
         patient.del_21765_6 = del_21765_6
         patient.d614g = d614g
         patient.stays = []
+        patient.contacts = []
 
 ### Read the patient stays spreadsheet
-with open('V2-patient_stays.csv') as fh:
+with open('data_from_chris/V2-patient_stays.csv') as fh:
     lines = fh.readlines()
     lines = [line.rstrip() for line in lines]
 fh.close()
 
 ### Remove the header line
 header = lines.pop(0) 
-sys.stderr.write(header)
+#sys.stderr.write(header)
  
     
 for readline in lines:
@@ -95,13 +96,6 @@ for readline in lines:
             patient.stays.append(stay)
     
     
-    
-### Convert strings to dates
-#start_date = dt.strptime(stay.start_date_string, "%d/%m/%Y")
-#end_date = dt.strptime(stay.end_date_string, "%d/%m/%Y")
-#last_infectious_date = dt.strptime(patient.last_infectious_date_string, "%d/%m/%Y")    
-    
-    
 ### Now that we have populated the Patient objects with attributes and lists of Stay objects, we can analyse overlapping stays
 for patient1 in patients:
     for patient2 in patients:
@@ -112,10 +106,25 @@ for patient1 in patients:
                         if stay1.ward == stay2.ward and stay1.ward != "":
                             #print(patient1.sequence_name, " shared ward ", stay1.ward, " with ", patient2.sequence_name)
                             overlap = False 
-                            if stay1.start_date >= stay2.start_date and stay1.start_date <= stay2.end_date:
+                            
+                            start_date1 = dt.strptime(stay1.start_date, " %d/%m/%Y")
+                            start_date2 = dt.strptime(stay2.start_date, " %d/%m/%Y")
+                            end_date1 = dt.strptime(stay1.end_date, " %d/%m/%Y")
+                            end_date2 = dt.strptime(stay2.end_date, " %d/%m/%Y")
+                            
+                            if start_date1 >= start_date2 and start_date1 <= end_date2:
                                 overlap = True
-                            elif stay1.end_date >= stay2.start_date and stay1.end_date <= stay2.end_date:
+                            elif end_date1 >= start_date2 and end_date1 <= end_date2:
                                  overlap = True
                             if overlap:
-                                print(patient1.sequence_name, patient1.lineage, stay1.start_date, "-", stay1.end_date, " shared ward ", stay1.ward, " with ", patient2.sequence_name, patient2.lineage, stay2.start_date, "-", stay2.end_date)
-                
+                                patient1.contacts.append(patient2)
+                                patient2.contacts.append(patient1)
+
+### print the contacts
+for patient in patients:
+    for contact in set(patient.contacts):
+        print(patient.sequence_name, '(', patient.lineage, '),',
+              contact.sequence_name, '(', contact.lineage, ')', sep='')
+    
+
+                                

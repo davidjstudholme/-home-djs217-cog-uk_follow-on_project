@@ -3,7 +3,7 @@ title: "A2B-COVID"
 output: html_notebook
 ---
 
-## Reformat Crhis' data as input for A2B-COVID
+## Reformat Chris' data as input for A2B-COVID
 
 ```{bash include=T, eval=T, echo=T, warning=T, message=T}
 

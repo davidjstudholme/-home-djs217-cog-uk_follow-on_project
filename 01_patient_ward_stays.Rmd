@@ -3,15 +3,24 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-Reformat Chris' data 
+## Reformat Chris' data 
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+
+python3 reformat_chris_locations.py
+
+```
+
+## Generate a list of contacts between patients
+
+```{bash include=T, eval=T, echo=T, warning=T, message=T}
+python3 identify_patient_contacts.py > patient_contacts.csv
+```
 
 
 
 
-
-
-
-```{r}
+```{r include=T, eval=T, echo=T, warning=T, message=T}
 library(ggplot2)
 
 ### Define functions
@@ -30,9 +39,9 @@ plot_timeline_for_ward <- function(df, ward.name) {
 
 
 ### Read the data
-df <- read.table("V2-patient_stays.csv", sep=',', header=T)
+df <- read.table("data_from_chris_reformatted/V2-patient_stays.csv", sep=',', header=T)
 
-wards = levels(df$Ward)
+wards = unique(df$Ward)
 
 for (val in wards) {
   outfile.name <- paste('ward-', val, '_timeline.png', sep='')
