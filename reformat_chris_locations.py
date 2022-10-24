@@ -6,7 +6,13 @@ output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
 output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.csv'
 last_dates_filename = 'data_from_chris/last_infectious_date.csv'
 
-message = ["Infile:", input_filename, "\nOutfile:", output_filename, "\nOutfile for a2bcovid:", output_for_a2b_filename, '\n']
+message = ["Infile:",
+           input_filename,
+           "\nOutfile:",
+           output_filename,
+           "\nOutfile for a2bcovid:",
+           output_for_a2b_filename,
+           '\n']
 sys.stderr.write(" ".join(message))
 
 ### Read the data from Chris's spreadsheet
@@ -56,40 +62,51 @@ for readline in lines:
         if patient.coguk_id == coguk_id:
             patient_is_new = False
             this_patient = patient
-                
-    if patient_is_new:
-        previous_ward = ""
-        this_patient = Patient()
-        this_patient.coguk_id = coguk_id
-        this_patient.admission_date_string = admission_date_string
-        this_patient.covid_date_string = covid_date_string
-        this_patient.stays = []
-        patients.append(this_patient)
+
+        if patient_is_new:
+            previous_ward = ""
+            this_patient = Patient()
+            this_patient.coguk_id = coguk_id
+            this_patient.admission_date_string = admission_date_string
+            this_patient.covid_date_string = covid_date_string
+            this_patient.stays = []
+            patients.append(this_patient)
         
-        stay = Stay()
-        stay.start_date_string = move_date_string
-        stay.end_date = ""
-        stay.ward = new_ward
-        stay.previous_ward = previous_ward
-        stay.bay = new_bay
-        stay.bed = new_bed  
-        this_patient.stays.append(stay)
-              
-    else: # Continuing with same patient
-        ### First, finish populating the previous stay
-        stay.end_date_string = move_date_string       
-        ### Now, create and start populating the new stay
-        stay = Stay()
-        stay.start_date_string = move_date_string
-        stay.end_date_string = ""
-        stay.ward = new_ward
-        stay.previous_ward = previous_ward
-        stay.bay = new_bay
-        stay.bed = new_bed
-        this_patient.stays.append(stay)  
-        
-    previous_coguk_id = coguk_id
-    previous_ward = new_ward
+            stay = Stay()
+            stay.start_date_string = move_date_string
+            stay.end_date = ""
+            stay.ward = new_ward
+            stay.previous_ward = previous_ward
+            this_patient.stays.append(stay)
+        else:
+
+            ###  Continuing with same patient
+
+            ### Is this stay on the same ward as the previous one? Or a different ward?
+            ward_is_the_same_as_previous = False
+            if new_ward == previous_ward:
+                ward_is_the_same_as_previous = True
+
+            ### First, finish populating the previous stay
+            stay.end_date_string = move_date_string
+
+            if ward_is_the_same_as_previous:
+
+                ### Extend the previous stay
+                pass
+            
+            else:
+            
+                ### Create and start populating the new stay
+                stay = Stay()
+                stay.start_date_string = move_date_string
+                stay.end_date_string = ""
+                stay.ward = new_ward
+                stay.previous_ward = previous_ward
+                this_patient.stays.append(stay)  
+
+        previous_coguk_id = coguk_id
+        previous_ward = new_ward
     
 ### Read the last infectious date for each patient so we can eliminate non-infectious periods
 with open(last_dates_filename) as fh:
@@ -100,7 +117,6 @@ fh.close()
 ### Remove the header line
 header = lines.pop(0) 
 #sys.stderr.write(header)   
-
 
 for readline in lines:
     headings = readline.split(',')
@@ -117,10 +133,16 @@ for readline in lines:
         sys.stderr.write('\n')
         sys.stderr.write(coguk_id)
         sys.stderr.write('\n')
-            
     
 ### Print the data to file
-header_line = ['COG-UK', 'Admission date', 'SARS-Cov-2 date', 'Last infectious date', 'Start date', 'End date', 'Ward', 'Bay', 'Bed', '\n']
+header_line = ['COG-UK',
+               'Admission date',
+               'SARS-Cov-2 date',
+               'Last infectious date',
+               'Start date',
+               'End date',
+               'Ward',
+               '\n']
 fh = open(output_filename, "w")
 fh.write(", ".join(header_line))
 for patient in patients:
@@ -139,15 +161,27 @@ for patient in patients:
             ### Ignore this stay because patient was not infectious
             pass
         else:                      
-            data_line = [patient.coguk_id, patient.admission_date_string, patient.covid_date_string, patient.last_infectious_date_string, stay.start_date_string, stay.end_date_string, stay.ward, stay.bay, stay.bed, '\n']
+            data_line = [patient.coguk_id,
+                         patient.admission_date_string,
+                         patient.covid_date_string,
+                         patient.last_infectious_date_string,
+                         stay.start_date_string,
+                         stay.end_date_string,
+                         stay.ward,
+                         '\n']
             fh.write(", ".join(data_line))
             
 fh.close()
 
 
 ### Print the data to file formatted for a2bcovid
-header_line = ['patient_study_id',	'from_ward',	'start_date',	'to_ward',	'end_date',	'last_infectious_date', '\n']
-
+header_line = ['patient_study_id',
+               'from_ward',
+               'start_date',
+               'to_ward',
+               'end_date',
+               'last_infectious_date',
+               '\n']
 
 fh = open(output_for_a2b_filename, "w")
 fh.write(", ".join(header_line))
@@ -167,7 +201,12 @@ for patient in patients:
             ### Ignore this stay because patient was not infectious
             pass
         else:                      
-            data_line = [patient.coguk_id, stay.previous_ward, stay.start_date_string,	stay.ward, stay.end_date_string,	patient.last_infectious_date_string, '\n']
+            data_line = [patient.coguk_id,
+                         stay.previous_ward,
+                         stay.start_date_string,
+                         stay.ward, stay.end_date_string,
+                         patient.last_infectious_date_string,
+                         '\n']
             fh.write(", ".join(data_line))
             
 fh.close()
