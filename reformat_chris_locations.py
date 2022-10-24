@@ -8,12 +8,55 @@ last_dates_filename = 'data_from_chris/last_infectious_date.csv'
 
 message = ["Infile:",
            input_filename,
+           '\nInfile for last infectious dates:',
+           last_dates_filename,
            "\nOutfile:",
            output_filename,
            "\nOutfile for a2bcovid:",
            output_for_a2b_filename,
            '\n']
 sys.stderr.write(" ".join(message))
+
+### Define the objects
+class Patient:
+    pass
+class Stay:
+    pass
+class Location:
+    pass
+patients = []
+
+### Read the last infectious date for each patient
+with open(last_dates_filename) as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+fh.close()
+
+### Remove the header line
+header = lines.pop(0)
+
+### Read the data lines for last infectious date
+for readline in lines:
+    headings = readline.split(',')
+    coguk_id, positive_date_string, last_infectious_date_string, datediff = headings[0:5]
+
+    ### Is this a new patient or are we continuing the previous one?
+    patient = ''
+    patient_is_new = True
+    for this_patient in patients:
+        if this_patient.coguk_id == coguk_id:
+            patient_is_new = False
+            patient = this_patient
+
+    if patient_is_new:
+        ### Create a new patient
+        patient = Patient()
+        patient.stays = []
+        patient.covid_date_string = positive_date_string
+        patient.coguk_id = coguk_id
+        patients.append(patient)
+
+    patient.last_infectious_date_string = last_infectious_date_string
 
 ### Read the data from Chris's spreadsheet
 with open(input_filename) as fh:
@@ -22,121 +65,98 @@ with open(input_filename) as fh:
 fh.close()
 
 ### Remove the header line
-header = lines.pop(0) 
-#sys.stderr.write(header)
-
-### Define the objects
-
-class Patient:
-    pass
-
-class Stay:
-    pass
-
-class Location:
-    pass
+header = lines.pop(0)
 
 ### Now read each line and populate the objects
-previous_coguk_id = ""
-previous_ward = ""
 sideroom_index = 1
-patients = []
+home_index = 1
+
+### Read the first line of data
+readline = lines.pop(0)
+headings1 = readline.split(',')
+coguk_id1, admission_date_string1, covid_date_string1, date_string1, ward1, bay1, bed1 = headings1[0:7]
+
+### Read each line of the data
 for readline in lines:
-    headings = readline.split(',')
-    coguk_id, admission_date_string, covid_date_string, move_date_string, new_ward, new_bay, new_bed = headings[0:7]
+    patient = '';
+    headings2 = readline.split(',')    
+    coguk_id2, admission_date_string2, covid_date_string2, date_string2, ward2, bay2, bed2 = headings2[0:7]
     
-    if new_bay == "SR":
-      new_ward_as_list = [new_ward, 'SR', str(sideroom_index)]
-      new_ward = '-'.join(new_ward_as_list)
-      sideroom_index += 1
-      print(new_ward)
-     
-    ### If the COG-UK ID is left blank, then assume that it is the same as previous
-    if coguk_id == "":
-        coguk_id = previous_coguk_id
-    
+    ### If the COG-UK ID is left blank, then assume it is same as for previous row
+    if coguk_id2 == '':
+        coguk_id2 = coguk_id1
+        
+    ### Treat siderooms as if they were a separate ward
+    if bay1 == "SR":
+        ward1_as_list = [ward1, 'SR', str(sideroom_index)]
+        ward1 = '-'.join(ward1_as_list)
+        sideroom_index += 1
+
+      ### Treat Home as if they were a separate ward                                                                                              
+    elif ward1 == "Home":
+        ward1_as_list = ['Home', str(home_index)]
+        ward1 = '-'.join(ward1_as_list)
+        home_index += 1
+
     ### Is this a new patient or are we continuing the previous one?
     patient_is_new = True
-    this_patient = 0
-    for patient in patients:
-        if patient.coguk_id == coguk_id:
+    for this_patient in patients:
+        if this_patient.coguk_id == coguk_id1:
             patient_is_new = False
-            this_patient = patient
-
-        if patient_is_new:
-            previous_ward = ""
-            this_patient = Patient()
-            this_patient.coguk_id = coguk_id
-            this_patient.admission_date_string = admission_date_string
-            this_patient.covid_date_string = covid_date_string
-            this_patient.stays = []
-            patients.append(this_patient)
+            patient = this_patient
         
-            stay = Stay()
-            stay.start_date_string = move_date_string
-            stay.end_date = ""
-            stay.ward = new_ward
-            stay.previous_ward = previous_ward
-            this_patient.stays.append(stay)
-        else:
-
-            ###  Continuing with same patient
-
-            ### Is this stay on the same ward as the previous one? Or a different ward?
-            ward_is_the_same_as_previous = False
-            if new_ward == previous_ward:
-                ward_is_the_same_as_previous = True
-
-            ### First, finish populating the previous stay
-            stay.end_date_string = move_date_string
-
-            if ward_is_the_same_as_previous:
-
-                ### Extend the previous stay
-                pass
+    if patient_is_new:
+        ### Create a new patient
+        patient = Patient()
+        patient.coguk_id = coguk_id1
+        patient.covid_date_string = covid_date_string1
+        patient.stays = []
+        patient.last_infectious_date_string = ''
+        patients.append(this_patient)
             
-            else:
-            
-                ### Create and start populating the new stay
-                stay = Stay()
-                stay.start_date_string = move_date_string
-                stay.end_date_string = ""
-                stay.ward = new_ward
-                stay.previous_ward = previous_ward
-                this_patient.stays.append(stay)  
+    ### Create and start populating the new stay
+    stay = Stay()
+    stay.start_date_string = date_string1
+    stay.end_date_string = date_string2
+    stay.ward = ward1
+    stay.previous_ward = ward1
+    patient.stays.append(stay)    
+        
+    if coguk_id1 == coguk_id2:
+        ### Both rows correspond to the same patient
+        stay.end_date_string = date_string2
+    else:
+        ### The first row is the final stay for this patient
+        stay.end_date_string = patient.last_infectious_date_string 
+        
+    coguk_id1, admission_date_string1, covid_date_string1, date_string1, ward1, bay1, bed1 = [coguk_id2,
+                                                                                              admission_date_string2,
+                                                                                              covid_date_string2,
+                                                                                              date_string2,
+                                                                                              ward2,
+                                                                                              bay2,
+                                                                                              bed2]    
 
-        previous_coguk_id = coguk_id
-        previous_ward = new_ward
-    
-### Read the last infectious date for each patient so we can eliminate non-infectious periods
-with open(last_dates_filename) as fh:
-    lines = fh.readlines()
-    lines = [line.rstrip() for line in lines]
-fh.close()
-
-### Remove the header line
-header = lines.pop(0) 
-#sys.stderr.write(header)   
-
-for readline in lines:
-    headings = readline.split(',')
-    coguk_id, positive_date_string, last_infectious_date_string, datediff = headings[0:5]     
-                 
-    ### Find which patient we are dealing with
-    not_found_this_patient = True
+### Where two adjacent stays are in the same ward, merge them into one
+not_finished_doing_merging = True
+while not_finished_doing_merging:
     for patient in patients:
-        if patient.coguk_id == coguk_id:
-            not_found_this_patient = False
-            patient.last_infectious_date_string = last_infectious_date_string    
-    if not_found_this_patient:
-        sys.stderr.write('Failed to find patient with this COG-UK ID:')
-        sys.stderr.write('\n')
-        sys.stderr.write(coguk_id)
-        sys.stderr.write('\n')
-    
+        not_finished_doing_merging = False
+        for stay1 in patient.stays:
+            for stay2 in patient.stays:
+                if stay1 != stay2:
+                    start_date1 = dt.strptime(stay1.start_date_string, "%d/%m/%Y")
+                    end_date1 = dt.strptime(stay1.end_date_string, "%d/%m/%Y")
+                    start_date2 = dt.strptime(stay2.start_date_string, "%d/%m/%Y")
+                    end_date2 = dt.strptime(stay2.end_date_string, "%d/%m/%Y")
+
+                    if start_date2 == end_date1 and stay1.ward == stay2.ward:
+                        stay1.end_date_string = stay2.end_date_string
+                        patient.stays.remove(stay2)
+                        not_finished_doing_merging = True
+
 ### Print the data to file
 header_line = ['COG-UK',
-               'Admission date',
                'SARS-Cov-2 date',
                'Last infectious date',
                'Start date',
@@ -162,7 +182,6 @@ for patient in patients:
             pass
         else:                      
             data_line = [patient.coguk_id,
-                         patient.admission_date_string,
                          patient.covid_date_string,
                          patient.last_infectious_date_string,
                          stay.start_date_string,
@@ -204,7 +223,7 @@ for patient in patients:
             data_line = [patient.coguk_id,
                          stay.previous_ward,
                          stay.start_date_string,
-                         stay.ward, stay.end_date_string,
+                         'Discharge', stay.end_date_string,
                          patient.last_infectious_date_string,
                          '\n']
             fh.write(", ".join(data_line))
