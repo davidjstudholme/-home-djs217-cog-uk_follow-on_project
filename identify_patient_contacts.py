@@ -123,8 +123,8 @@ for patient1 in patients:
 ### print the contacts
 for patient in patients:
     for contact in set(patient.contacts):
-        print(patient.sequence_name, '(', patient.lineage, '),',
-              contact.sequence_name, '(', contact.lineage, ')', sep='')
+        print(patient.sequence_name, patient.lineage,
+              contact.sequence_name, contact.lineage, sep=',')
     
 
                                 
