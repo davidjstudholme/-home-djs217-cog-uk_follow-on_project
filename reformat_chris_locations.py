@@ -27,56 +27,11 @@ class Stay:
     pass
 class Location:
     pass
+
 patients = []
 
-### Read the staff data from Chris's spreadsheet
-with open(staff_input_filename) as fh:
-    lines = fh.readlines()
-    lines = [line.rstrip() for line in lines]
-fh.close()
+ward_to_siderooms = {}
 
-### Remove the header line                                                                                                       
-header = lines.pop(0)
-
-### Read each line of the data   
-for readline in lines:
-    readline = lines.pop(0)
-    headings1 = readline.split(',')
-    coguk_id, hcw, positive_date_string, ward, category = headings1[0:5]
-
-    ### Is this a new patient or are we continuing the previous one?                                                             
-    patient = ''
-    patient_is_new = True
-    for this_patient in patients:
-        if this_patient.coguk_id == coguk_id:
-            patient_is_new = False
-            patient = this_patient
-
-    if patient_is_new:
-            
-        patient = Patient()
-        patient.stays = []
-        patient.covid_date_string = positive_date_string
-        patient.last_infectious_date_string = positive_date_string
-        patient.coguk_id = coguk_id
-        patients.append(patient)
-
-        ### Consider the stay to have styarted 14 days before positive date
-        positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
-        start_date = positive_date - timedelta(days = 14)
-        start_date_string = start_date.strftime("%d/%m/%Y")
-        print(positive_date_string, start_date_string)
-        
-        stay = Stay()
-        stay.start_date_string = start_date_string 
-        stay.end_date_string = positive_date_string
-        stay.ward = ward ### But we also need to consider all siderooms in this ward
-        stay.previous_ward = ''
-        patient.stays.append(stay)
-
-    else:
-        print('We have seen this staff member before; this should never happen')
-        
 ### Read the last infectious date for each patient
 with open(last_dates_filename) as fh:
     lines = fh.readlines()
@@ -139,10 +94,18 @@ for readline in lines:
         
     ### Treat siderooms as if they were a separate ward
     if bay1 == "SR":
-        ward1_as_list = [ward1, 'SR', str(sideroom_index)]
-        ward1 = '-'.join(ward1_as_list)
+        sideroom_name_as_list = [ward1, 'SR', str(sideroom_index)]
+        sideroom_name = '-'.join(sideroom_name_as_list)
         sideroom_index += 1
+        if ward1 in ward_to_siderooms:
+            pass
+        else:
+             ward_to_siderooms[ward1] = []
 
+        ward_to_siderooms[ward1].append(sideroom_name)
+        ward1 = sideroom_name
+
+        
       ### Treat Home as if they were a separate ward                                                                                              
     elif ward1 == "Home":
         ward1_as_list = ['Home', str(home_index)]
@@ -205,6 +168,57 @@ while not_finished_doing_merging:
                         stay1.end_date_string = stay2.end_date_string
                         patient.stays.remove(stay2)
                         not_finished_doing_merging = True
+
+### Read the staff data from Chris's spreadsheet                                                                                  
+with open(staff_input_filename) as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+fh.close()
+
+### Remove the header line                                                                                                       
+header = lines.pop(0)
+
+### Read each line of the data                                                                                                    
+for readline in lines:
+    readline = lines.pop(0)
+    headings1 = readline.split(',')
+    coguk_id, hcw, positive_date_string, ward, category = headings1[0:5]
+
+    ### Is this a new patient (staff) or are we continuing the previous one?                                                             
+    patient = ''
+    patient_is_new = True
+    for this_patient in patients:
+        if this_patient.coguk_id == coguk_id:
+            patient_is_new = False
+            patient = this_patient
+
+    if patient_is_new:
+
+        patient = Patient()
+        patient.stays = []
+        patient.covid_date_string = positive_date_string
+        patient.last_infectious_date_string = positive_date_string
+        patient.coguk_id = coguk_id
+        patients.append(patient)
+
+        ### Consider the stay to have started 14 days before positive date                                                       
+        positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
+        start_date = positive_date - timedelta(days = 14)
+        start_date_string = start_date.strftime("%d/%m/%Y")
+
+        stay = Stay()
+        stay.start_date_string = start_date_string
+        stay.end_date_string = positive_date_string
+        stay.ward = ward ### But we also need to consider all siderooms in this ward                                                      stay.previous_ward = ''
+        patient.stays.append(stay)
+
+        ### Also add a stay in each sideroom associated with this ward
+        for sideroom in ward_to_siderooms[ward]:
+            pass
+        
+        
+    else:
+        print('We have seen this staff member before; this should never happen')
 
 ### Print the data to file
 header_line = ['COG-UK',
