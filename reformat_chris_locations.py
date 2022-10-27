@@ -5,6 +5,7 @@ input_filename = 'data_from_chris/V2-ward-location.csv'
 output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
 output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.csv'
 last_dates_filename = 'data_from_chris/last_infectious_date.csv'
+staff_input_filename = 'data_from_chris/patientstaff_data_for_haplotype_network.csv'
 
 message = ["Infile:",
            input_filename,
@@ -26,6 +27,52 @@ class Location:
     pass
 patients = []
 
+### Read the staff data from Chris's spreadsheet
+with open(staff_input_filename) as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+fh.close()
+
+### Remove the header line                                                                                                       
+header = lines.pop(0)
+
+### Read each line of the data   
+for readline in lines:
+    readline = lines.pop(0)
+    headings1 = readline.split(',')
+    coguk_id, hcw, positive_date_string, ward, category = headings1[0:5]
+
+    ### Is this a new patient or are we continuing the previous one?                                                             
+    patient = ''
+    patient_is_new = True
+    for this_patient in patients:
+        if this_patient.coguk_id == coguk_id:
+            patient_is_new = False
+            patient = this_patient
+
+    if patient_is_new:
+            
+        patient = Patient()
+        patient.stays = []
+        patient.covid_date_string = positive_date_string
+        patient.last_infectious_date_string = positive_date_string
+        patient.coguk_id = coguk_id
+        patients.append(patient)
+
+
+        positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
+
+        
+        stay = Stay()
+        stay.start_date_string = positive_date_string #  -14 days
+        stay.end_date_string = positive_date_string
+        stay.ward = ward ### But we also need to consider all siderooms in this ward
+        stay.previous_ward = ''
+        patient.stays.append(stay)
+
+    else:
+        print('We have seen this staff member before; this should never happen')
+        
 ### Read the last infectious date for each patient
 with open(last_dates_filename) as fh:
     lines = fh.readlines()
@@ -203,7 +250,7 @@ header_line = ['patient_study_id',
                '\n']
 
 fh = open(output_for_a2b_filename, "w")
-fh.write(", ".join(header_line))
+fh.write(",".join(header_line))
 for patient in patients:
     for stay in patient.stays:  
         
@@ -226,6 +273,6 @@ for patient in patients:
                          'Discharge', stay.end_date_string,
                          patient.last_infectious_date_string,
                          '\n']
-            fh.write(", ".join(data_line))
+            fh.write(",".join(data_line))
             
 fh.close()

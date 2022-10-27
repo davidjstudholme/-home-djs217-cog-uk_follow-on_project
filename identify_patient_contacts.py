@@ -2,8 +2,12 @@ import sys
 import re
 from datetime import datetime as dt
 
+staff_input_file = 'data_from_chris/patientstaff_data_for_haplotype_network.csv'
+metadata_input_file = 'cog_metadata.exet.with-header.csv'
+
+
 ### Read the COG-UK metadata spreadsheet
-with open('cog_metadata.exet.with-header.csv') as fh:
+with open(metadata_input_file) as fh:
     lines = fh.readlines()
     lines = [line.rstrip() for line in lines]
 fh.close()
