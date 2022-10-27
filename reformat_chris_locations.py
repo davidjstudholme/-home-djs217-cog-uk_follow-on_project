@@ -63,8 +63,8 @@ for readline in lines:
 
         ### Consider the stay to have styarted 14 days before positive date
         positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
-        start_date = positive_date - timedelta(days=14)
-        start_date_string = positive_date.strftime("%d/%m/%Y")
+        start_date = positive_date - timedelta(days = 14)
+        start_date_string = start_date.strftime("%d/%m/%Y")
         print(positive_date_string, start_date_string)
         
         stay = Stay()
