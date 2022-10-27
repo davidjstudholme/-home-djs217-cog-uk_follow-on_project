@@ -1,10 +1,10 @@
 import sys
 import re
 from datetime import datetime as dt
+from datetime import timedelta
 
 staff_input_file = 'data_from_chris/patientstaff_data_for_haplotype_network.csv'
 metadata_input_file = 'cog_metadata.exet.with-header.csv'
-
 
 ### Read the COG-UK metadata spreadsheet
 with open(metadata_input_file) as fh:
@@ -78,8 +78,7 @@ fh.close()
 ### Remove the header line
 header = lines.pop(0) 
 #sys.stderr.write(header)
- 
-    
+     
 for readline in lines:
     headings = readline.split(',')
        
@@ -99,7 +98,6 @@ for readline in lines:
             stay.bed = bed
             patient.stays.append(stay)
     
-    
 ### Now that we have populated the Patient objects with attributes and lists of Stay objects, we can analyse overlapping stays
 for patient1 in patients:
     for patient2 in patients:
@@ -108,27 +106,39 @@ for patient1 in patients:
                     for stay2 in patient2.stays:
                         #print(patient1.sequence_name, " versus ", patient2.sequence_name)
                         if stay1.ward == stay2.ward and stay1.ward != "":
-                            #print(patient1.sequence_name, " shared ward ", stay1.ward, " with ", patient2.sequence_name)
-                            overlap = False 
                             
+                            overlap = False 
                             start_date1 = dt.strptime(stay1.start_date, " %d/%m/%Y")
                             start_date2 = dt.strptime(stay2.start_date, " %d/%m/%Y")
                             end_date1 = dt.strptime(stay1.end_date, " %d/%m/%Y")
                             end_date2 = dt.strptime(stay2.end_date, " %d/%m/%Y")
-                            
+                            covid_date1 = dt.strptime(patient1.covid_date," %d/%m/%Y")
+                            covid_date2 = dt.strptime(patient2.covid_date," %d/%m/%Y")
                             if start_date1 >= start_date2 and start_date1 <= end_date2:
                                 overlap = True
                             elif end_date1 >= start_date2 and end_date1 <= end_date2:
                                  overlap = True
-                            if overlap:
-                                patient1.contacts.append(patient2)
-                                patient2.contacts.append(patient1)
+
+                            within_14_days = True
+                            if covid_date1 < covid_date2:
+                                if covid_date1 + timedelta(days=14) < covid_date2:
+                                    within_14_days = False
+                            elif covid_date2 < covid_date1:
+                                if covid_date2 + timedelta(days=14) < covid_date1:
+                                    within_14_days = False
+                                    
+                            if overlap and within_14_days:
+                                if covid_date1 < covid_date2:
+                                    patient1.contacts.append(patient2)
+                                else:
+                                    patient2.contacts.append(patient1)
 
 ### print the contacts
+print('From ID', 'From lineage', 'To ID', 'To lineage')
 for patient in patients:
     for contact in set(patient.contacts):
         print(patient.sequence_name, patient.lineage,
-              contact.sequence_name, contact.lineage, sep=',')
+              contact.sequence_name, contact.lineage)
     
 
                                 
