@@ -1,5 +1,7 @@
 import sys
 from datetime import datetime as dt
+from datetime import datetime, timedelta
+
 
 input_filename = 'data_from_chris/V2-ward-location.csv'
 output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
@@ -59,12 +61,14 @@ for readline in lines:
         patient.coguk_id = coguk_id
         patients.append(patient)
 
-
+        ### Consider the stay to have styarted 14 days before positive date
         positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
-
+        start_date = positive_date - timedelta(days=14)
+        start_date_string = positive_date.strftime("%d/%m/%Y")
+        print(positive_date_string, start_date_string)
         
         stay = Stay()
-        stay.start_date_string = positive_date_string #  -14 days
+        stay.start_date_string = start_date_string 
         stay.end_date_string = positive_date_string
         stay.ward = ward ### But we also need to consider all siderooms in this ward
         stay.previous_ward = ''
