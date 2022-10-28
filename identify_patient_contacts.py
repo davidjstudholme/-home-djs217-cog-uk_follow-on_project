@@ -3,8 +3,17 @@ import re
 from datetime import datetime as dt
 from datetime import timedelta
 
+analyse_at_bay_level = True
+
 staff_input_file = 'data_from_chris/patientstaff_data_for_haplotype_network.csv'
 metadata_input_file = 'cog_metadata.exet.with-header.csv'
+
+patient_stays_input_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
+if analyse_at_bay_level:
+    patient_stays_input_filename = 'data_from_chris_reformatted/V2-patient_stays.at-bay-level.csv'
+
+sys.stderr.write('Using infile:')
+sys.stderr.write(patient_stays_input_filename)
 
 ### Read the COG-UK metadata spreadsheet
 with open(metadata_input_file) as fh:
@@ -70,7 +79,7 @@ for readline in lines:
         patient.contacts = []
 
 ### Read the patient stays spreadsheet
-with open('data_from_chris/V2-patient_stays.csv') as fh:
+with open(patient_stays_input_filename) as fh:
     lines = fh.readlines()
     lines = [line.rstrip() for line in lines]
 fh.close()
@@ -81,21 +90,18 @@ header = lines.pop(0)
      
 for readline in lines:
     headings = readline.split(',')
-       
-    coguk_id, admission_date, covid_date, last_infectious_date, start_date, end_date, ward, bay, bed = headings[0:9]
+
+    coguk_id, covid_date, last_infectious_date, start_date, end_date, ward = headings[0:6]
 
     stay = Stay()
     
     ### Get the appropriate patient
     for patient in patients:
         if patient.sequence_name == coguk_id:
-            patient.admission_date = admission_date
             patient.covid_date = covid_date
             stay.start_date = start_date
             stay.end_date = end_date
             stay.ward = ward
-            stay.bay = bay
-            stay.bed = bed
             patient.stays.append(stay)
     
 ### Now that we have populated the Patient objects with attributes and lists of Stay objects, we can analyse overlapping stays
@@ -108,12 +114,12 @@ for patient1 in patients:
                         if stay1.ward == stay2.ward and stay1.ward != "":
                             
                             overlap = False 
-                            start_date1 = dt.strptime(stay1.start_date, " %d/%m/%Y")
-                            start_date2 = dt.strptime(stay2.start_date, " %d/%m/%Y")
-                            end_date1 = dt.strptime(stay1.end_date, " %d/%m/%Y")
-                            end_date2 = dt.strptime(stay2.end_date, " %d/%m/%Y")
-                            covid_date1 = dt.strptime(patient1.covid_date," %d/%m/%Y")
-                            covid_date2 = dt.strptime(patient2.covid_date," %d/%m/%Y")
+                            start_date1 = dt.strptime(stay1.start_date, "%d/%m/%Y")
+                            start_date2 = dt.strptime(stay2.start_date, "%d/%m/%Y")
+                            end_date1 = dt.strptime(stay1.end_date, "%d/%m/%Y")
+                            end_date2 = dt.strptime(stay2.end_date, "%d/%m/%Y")
+                            covid_date1 = dt.strptime(patient1.covid_date,"%d/%m/%Y")
+                            covid_date2 = dt.strptime(patient2.covid_date,"%d/%m/%Y")
                             if start_date1 >= start_date2 and start_date1 <= end_date2:
                                 overlap = True
                             elif end_date1 >= start_date2 and end_date1 <= end_date2:
