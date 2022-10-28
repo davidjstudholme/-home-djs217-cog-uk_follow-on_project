@@ -97,7 +97,7 @@ for readline in lines:
     patient = '';
     headings2 = readline.split(',')    
     coguk_id2, admission_date_string2, covid_date_string2, date_string2, ward2, bay2, bed2 = headings2[0:7]
-    
+
     ### If the COG-UK ID is left blank, then assume it is same as for previous row
     if coguk_id2 == '':
         coguk_id2 = coguk_id1
@@ -120,7 +120,7 @@ for readline in lines:
         ward1 = '-'.join(ward1_as_list)
         home_index += 1
 
-    elif analyse_at_bay_level and bay1 != 'Cutover':
+    elif analyse_at_bay_level and bay1 != 'Cutover' and bay1 != 'Cutover ' and bay1 != '':
         ### Treat each bay as if it were a separate ward
         bay_as_list = [ward1, 'bay', bay1]
         bay_as_string = '-'.join(bay_as_list)
@@ -146,29 +146,33 @@ for readline in lines:
         patient.stays = []
         patient.last_infectious_date_string = ''
         patients.append(this_patient)
-            
-    ### Create and start populating the new stay
-    stay = Stay()
-    stay.start_date_string = date_string1
-    stay.end_date_string = date_string2
-    stay.ward = ward1
-    stay.previous_ward = ward1
-    patient.stays.append(stay)    
-        
-    if coguk_id1 == coguk_id2:
-        ### Both rows correspond to the same patient
-        stay.end_date_string = date_string2
+
+    ### If we are doing bay-level analysis, then we need to exclude stays  that have no valid bay
+    if analyse_at_bay_level and (bay1 == 'Cutover' or bay1 == 'Cutover ' or bay1 == ''):
+        pass
     else:
-        ### The first row is the final stay for this patient
-        stay.end_date_string = patient.last_infectious_date_string 
+        ### Create and start populating the new stay
+        stay = Stay()
+        stay.start_date_string = date_string1
+        stay.end_date_string = date_string2
+        stay.ward = ward1
+        stay.previous_ward = ward1
+        patient.stays.append(stay)    
+        
+        if coguk_id1 == coguk_id2:
+            ### Both rows correspond to the same patient
+            stay.end_date_string = date_string2
+        else:
+            ### The first row is the final stay for this patient
+            stay.end_date_string = patient.last_infectious_date_string 
         
     coguk_id1, admission_date_string1, covid_date_string1, date_string1, ward1, bay1, bed1 = [coguk_id2,
-                                                                                              admission_date_string2,
-                                                                                              covid_date_string2,
-                                                                                              date_string2,
-                                                                                              ward2,
-                                                                                              bay2,
-                                                                                              bed2]    
+                                                                                                      admission_date_string2,
+                                                                                                      covid_date_string2,
+                                                                                                      date_string2,
+                                                                                                      ward2,
+                                                                                                      bay2,
+                                                                                                      bed2]    
 
 ### Where two adjacent stays are in the same ward, merge them into one
 not_finished_doing_merging = True
@@ -251,7 +255,8 @@ for readline in lines:
                 stay.previous_ward = bay
                 patient.stays.append(stay)
         if not ward in ward_to_bays:
-            print('Warning. No bays found in ward:', ward)
+            pass
+            #print('Warning. No bays found in ward:', ward)
                 
 
     else:
