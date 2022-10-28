@@ -2,7 +2,7 @@ import sys
 from datetime import datetime as dt
 from datetime import datetime, timedelta
 
-analyse_at_bay_level = False
+analyse_at_bay_level = True
 
 ### Input files
 input_filename = 'data_from_chris/V2-ward-location.csv'
@@ -230,13 +230,14 @@ for readline in lines:
         positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
         start_date = positive_date - timedelta(days = 14)
         start_date_string = start_date.strftime("%d/%m/%Y")
-                
-        stay = Stay()
-        stay.start_date_string = start_date_string
-        stay.end_date_string = positive_date_string
-        stay.ward = ward
-        stay.previous_ward = ward
-        patient.stays.append(stay)
+
+        if not analyse_at_bay_level:
+            stay = Stay()
+            stay.start_date_string = start_date_string
+            stay.end_date_string = positive_date_string
+            stay.ward = ward
+            stay.previous_ward = ward
+            patient.stays.append(stay)
 
         if ward in ward_to_siderooms:
             ### Also add a stay in each sideroom associated with this ward
