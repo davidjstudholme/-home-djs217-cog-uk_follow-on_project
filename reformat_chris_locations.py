@@ -2,12 +2,19 @@ import sys
 from datetime import datetime as dt
 from datetime import datetime, timedelta
 
+analyse_at_bay_level = True
 
+### Input files
 input_filename = 'data_from_chris/V2-ward-location.csv'
-output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
-output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.csv'
 last_dates_filename = 'data_from_chris/last_infectious_date.csv'
 staff_input_filename = 'data_from_chris/patientstaff_data_for_haplotype_network.csv'
+
+### Output files
+output_filename = 'data_from_chris_reformatted/V2-patient_stays.csv'
+output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.csv'
+if analyse_at_bay_level:
+    output_filename = 'data_from_chris_reformatted/V2-patient_stays.at-bay-level.csv'
+    output_for_a2b_filename = 'data_from_chris_reformatted/V2-patient_stays_for_a2b.at-bay-level.csv'
 
 message = ["Infile:",
            input_filename,
@@ -28,9 +35,12 @@ class Stay:
 class Location:
     pass
 
+### A list of all Patient objects
 patients = []
 
+### Keep inventories of each bay and sideroom associated with each ward  
 ward_to_siderooms = {}
+ward_to_bays = {}
 
 ### Read the last infectious date for each patient
 with open(last_dates_filename) as fh:
@@ -94,24 +104,33 @@ for readline in lines:
         
     ### Treat siderooms as if they were a separate ward
     if bay1 == "SR":
-        sideroom_name_as_list = [ward1, 'SR', str(sideroom_index)]
-        sideroom_name = '-'.join(sideroom_name_as_list)
+        sideroom_as_list = [ward1, 'SR', str(sideroom_index)]
+        sideroom_as_string = '-'.join(sideroom_as_list)
         sideroom_index += 1
         if ward1 in ward_to_siderooms:
             pass
         else:
              ward_to_siderooms[ward1] = []
+        ward_to_siderooms[ward1].append(sideroom_as_string)
+        ward1 = sideroom_as_string
 
-        ward_to_siderooms[ward1].append(sideroom_name)
-        ward1 = sideroom_name
-
-        
-      ### Treat Home as if they were a separate ward                                                                                              
     elif ward1 == "Home":
+        ### Treat Home as if they were a separate ward
         ward1_as_list = ['Home', str(home_index)]
         ward1 = '-'.join(ward1_as_list)
         home_index += 1
 
+    elif analyse_at_bay_level and bay1 != 'Cutover':
+        ### Treat each bay as if it were a separate ward
+        bay_as_list = [ward1, 'bay', bay1]
+        bay_as_string = '-'.join(bay_as_list)
+        if bay_as_string in ward_to_bays:
+            pass
+        else:
+             ward_to_bays[ward1] = []
+        ward_to_bays[ward1].append(bay_as_string)
+        ward1 = bay_as_string
+        
     ### Is this a new patient or are we continuing the previous one?
     patient_is_new = True
     for this_patient in patients:
@@ -201,11 +220,11 @@ for readline in lines:
         patient.coguk_id = coguk_id
         patients.append(patient)
 
-        ### Consider the stay to have started 14 days before positive date                                                       
+        ### Consider the stay to have started 14 days before positive date             
         positive_date = dt.strptime(positive_date_string, "%d/%m/%Y")
         start_date = positive_date - timedelta(days = 14)
         start_date_string = start_date.strftime("%d/%m/%Y")
-
+                
         stay = Stay()
         stay.start_date_string = start_date_string
         stay.end_date_string = positive_date_string
@@ -213,8 +232,8 @@ for readline in lines:
         stay.previous_ward = ward
         patient.stays.append(stay)
 
-        ### Also add a stay in each sideroom associated with this ward
         if ward in ward_to_siderooms:
+            ### Also add a stay in each sideroom associated with this ward
             for sideroom in ward_to_siderooms[ward]:
                 stay = Stay()
                 stay.start_date_string = start_date_string        
@@ -222,7 +241,19 @@ for readline in lines:
                 stay.ward = sideroom 
                 stay.previous_ward = sideroom
                 patient.stays.append(stay)
+        if analyse_at_bay_level and ward in ward_to_bays:
+            ### Also add a stay in each bay associated with this ward 
+            for	bay in ward_to_bays[ward]:
+                stay = Stay()
+                stay.start_date_string = start_date_string
+                stay.end_date_string = positive_date_string
+                stay.ward = bay
+                stay.previous_ward = bay
+                patient.stays.append(stay)
+        if not ward in ward_to_bays:
+            print('Warning. No bays found in ward:', ward)
                 
+
     else:
         print('We have seen this staff member before; this should never happen')
 
@@ -235,7 +266,7 @@ header_line = ['COG-UK',
                'Ward',
                '\n']
 fh = open(output_filename, "w")
-fh.write(", ".join(header_line))
+fh.write(",".join(header_line))
 for patient in patients:
     for stay in patient.stays:  
         
@@ -259,7 +290,7 @@ for patient in patients:
                          stay.end_date_string,
                          stay.ward,
                          '\n']
-            fh.write(", ".join(data_line))
+            fh.write(",".join(data_line))
             
 fh.close()
 
