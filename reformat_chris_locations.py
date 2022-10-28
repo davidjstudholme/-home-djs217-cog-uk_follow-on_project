@@ -2,7 +2,7 @@ import sys
 from datetime import datetime as dt
 from datetime import datetime, timedelta
 
-analyse_at_bay_level = True
+analyse_at_bay_level = False
 
 ### Input files
 input_filename = 'data_from_chris/V2-ward-location.csv'
@@ -89,6 +89,7 @@ home_index = 1
 
 ### Read the first line of data
 readline = lines.pop(0)
+readline = readline.replace(' ', '')
 headings1 = readline.split(',')
 coguk_id1, admission_date_string1, covid_date_string1, date_string1, ward1, bay1, bed1 = headings1[0:7]
 
@@ -204,6 +205,7 @@ header = lines.pop(0)
 ### Read each line of the data                                                                                 
 for readline in lines:
     readline = lines.pop(0)
+    readline = readline.replace(' ', '')
     headings1 = readline.split(',')
     coguk_id, hcw, positive_date_string, ward, category = headings1[0:5]
 
